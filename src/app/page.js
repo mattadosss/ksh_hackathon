@@ -172,6 +172,11 @@ export default function WeekCalendar() {
                     >
                         {showForm ? "Cancel" : "Create Event"}
                     </button>
+                    <button
+                    className="ml-5 rounded bg-blue-600 text-white px-3 py-1.5 hover:bg-blue-700"
+                    onClick={() => (window.location.href = "/generate")}>
+                Generate Studyplan
+            </button>
                 </div>
             </div>
 
