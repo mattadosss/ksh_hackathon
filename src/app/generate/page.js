@@ -1,16 +1,9 @@
 "use client"
 
-import React, { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabaseClient'
 
-
-function roundUpToNextHour(d) {
-  const x = new Date(d)
-  x.setMinutes(0, 0, 0)
-  if (x <= d) x.setHours(x.getHours() + 1)
-  return x
-}
 
 function addHours(d, hours) {
   const x = new Date(d)
@@ -24,40 +17,6 @@ function sameDay(a, b) {
 
 function isOverlap(aStart, aEnd, bStart, bEnd) {
   return aStart < bEnd && bStart < aEnd
-}
-
-function findFirstGap(windowStart, windowEnd, busyIntervals, minHours) {
-  const minMs = minHours * 60 * 60 * 1000
-  const start = new Date(windowStart)
-  const end = new Date(windowEnd)
-  if (start >= end) return null
-
-  const intervals = busyIntervals
-    .map((iv) => ({
-      start: new Date(Math.max(start.getTime(), iv.start.getTime())),
-      end: new Date(Math.min(end.getTime(), iv.end.getTime())),
-    }))
-    .filter((iv) => iv.start < iv.end)
-    .sort((a, b) => a.start - b.start)
-
-  const merged = []
-  for (const iv of intervals) {
-    if (!merged.length || merged[merged.length - 1].end < iv.start) {
-      merged.push({ ...iv })
-    } else {
-      merged[merged.length - 1].end = new Date(Math.max(merged[merged.length - 1].end.getTime(), iv.end.getTime()))
-    }
-  }
-
-  let cursor = new Date(start)
-  for (const iv of merged) {
-    if (iv.start.getTime() - cursor.getTime() >= minMs) {
-      return new Date(cursor)
-    }
-    if (iv.end > cursor) cursor = new Date(iv.end)
-  }
-  if (end.getTime() - cursor.getTime() >= minMs) return new Date(cursor)
-  return null
 }
 
 async function fetchEventsFromDB() {
@@ -100,7 +59,7 @@ export default function GeneratePage() {
 
   const upcomingEvents = useMemo(() => {
     const now = new Date()
-    return [...generatedEvents]
+    return generatedEvents
       .filter((e) => new Date(e.end) >= now)
       .sort((a, b) => new Date(a.start) - new Date(b.start))
   }, [generatedEvents])
@@ -269,9 +228,7 @@ export default function GeneratePage() {
       if (!map.has(key)) map.set(key, [])
       map.get(key).push(ev)
     }
-    for (const [k, arr] of map.entries()) {
-      arr.sort((a, b) => new Date(a.start) - new Date(b.start))
-    }
+  for (const arr of map.values()) arr.sort((a, b) => new Date(a.start) - new Date(b.start))
     return map
   }, [upcomingEvents])
 
