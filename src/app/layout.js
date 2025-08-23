@@ -27,8 +27,7 @@ export default function RootLayout({ children }) {
             <div className="mx-auto w-full max-w-screen-xl p-4 py-6 lg:py-8">
                 <hr className="my-6 sm:mx-auto border-gray-700 lg:my-8" />
 
-                <div className="flex flex-col md:flex-row md:justify-between md:items-start">
-                    {/* Left Logo */}
+                <div className="flex flex-col md:flex-row md:justify-between md:items-start">                    
                     <div className="mb-6 md:mb-0">
                         <a className="flex items-center">
                             <span className="self-center text-2xl font-bold whitespace-nowrap">
@@ -37,7 +36,6 @@ export default function RootLayout({ children }) {
                         </a>
                     </div>
 
-                    {/* Right Team */}
                     <div className="mb-6 md:mb-0 md:ml-auto">
                         <h2 className="mb-6 text-2xl font-bold ">Team</h2>
                         <ul className=" font-medium">

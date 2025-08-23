@@ -7,7 +7,6 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import { supabase } from "../lib/supabaseClient";
 
 export default function WeekCalendar() {
-    // give each event a stable id so we can remove them when clicked
     const [events, setEvents] = useState([
         { id: "1", title: "Team Meeting", start: "2025-08-25T10:00:00", end: "2025-08-25T11:00:00" },
         { id: "2", title: "Workshop", start: "2025-08-27T14:00:00", end: "2025-08-27T16:00:00" },
@@ -34,15 +33,14 @@ export default function WeekCalendar() {
             return;
           }
       
-          // Map DB events to FullCalendar format
           const calendarEvents = data.map(ev => {
             if (ev.repeat_weekly) {
-              const weekday = new Date(ev.start).getDay(); // 0 = Sunday
+              const weekday = new Date(ev.start).getDay(); 
               return {
                 id: ev.id,
                 title: ev.title,
                 daysOfWeek: [weekday],
-                startTime: new Date(ev.start).toTimeString().slice(0,5), // HH:MM
+                startTime: new Date(ev.start).toTimeString().slice(0,5), 
                 endTime: ev.end ? new Date(ev.end).toTimeString().slice(0,5) : undefined,
                 startRecur: ev.start.split("T")[0],
                 repeat_weekly: true
@@ -58,7 +56,6 @@ export default function WeekCalendar() {
             }
           });
       
-          // Update state -> FullCalendar will automatically display
           setEvents(calendarEvents);
         } catch (err) {
           console.error("Unexpected error fetching events:", err);
@@ -70,15 +67,15 @@ export default function WeekCalendar() {
         const confirmDelete = window.confirm(`Delete event "${info.event.title}"?`);
         if (!confirmDelete) return;
       
-        // 1. remove from UI
+    
         setEvents((prev) => prev.filter((ev) => String(ev.id) !== clickedId));
       
-        // 2. remove from Supabase
+       
         deleteEventFromDB(clickedId);
       }
       
 
-    // 🔴 Delete event from Supabase
+  
     async function deleteEventFromDB(id) {
         const { error } = await supabase.from("events").delete().eq("id", id);
         if (error) {
@@ -88,6 +85,11 @@ export default function WeekCalendar() {
         }
     }
   
+    function adjustForTimezone(dateString) {
+        const date = new Date(dateString);
+        date.setHours(date.getHours() - 2);
+        return date.toISOString().slice(0,19); 
+      }
 
     function handleAddEvent(e) {
         e.preventDefault();
@@ -114,18 +116,20 @@ export default function WeekCalendar() {
     
             setEvents(prev => [...prev, newEvent]);
     
-            // Save to Supabase
             supabase
-              .from('events')
-              .insert([{
-                  title: newEvent.title,
-                  start: newEvent.startRecur + "T" + newEvent.startTime,
-                  end: newEvent.endTime ? newEvent.startRecur + "T" + newEvent.endTime : null,
-                  repeat_weekly: true
-              }])
-              .then(({ error }) => {
-                  if (error) console.error('Error saving event:', error);
-              });
+            .from('events')
+            .insert([{
+                title: newEvent.title,
+                start: new Date(newEvent.startRecur + "T" + newEvent.startTime).toISOString(),
+                end: newEvent.endTime
+                ? new Date(newEvent.startRecur + "T" + newEvent.endTime).toISOString()
+                : null,
+                repeat_weekly: true
+            }])
+            .then(({ error }) => {
+                if (error) console.error('Error saving event:', error);
+            });
+
     
         } else {
             newEvent = {
@@ -138,18 +142,18 @@ export default function WeekCalendar() {
     
             setEvents(prev => [...prev, newEvent]);
     
-            // Save to Supabase
             supabase
-              .from('events')
-              .insert([{
-                  title: newEvent.title,
-                  start: newEvent.start,
-                  end: newEvent.end || null,
-                  repeat_weekly: false
-              }])
-              .then(({ error }) => {
-                  if (error) console.error('Error saving event:', error);
-              });
+            .from('events')
+            .insert([{
+                title: newEvent.title,
+                start: new Date(newEvent.start).toISOString(),
+                end: newEvent.end ? new Date(newEvent.end).toISOString() : null,
+                repeat_weekly: false
+            }])
+            .then(({ error }) => {
+                if (error) console.error('Error saving event:', error);
+            });
+
         }
     
         resetForm();
@@ -257,9 +261,9 @@ export default function WeekCalendar() {
                     hour12: false,
                 }}
                 dayHeaderFormat={{
-                    day: "2-digit",   // 23
+                    day: "2-digit",   
                     month: "2-digit",
-                    weekday: 'long'  // 08
+                    weekday: 'long'  
                   }}
             />
         </div>

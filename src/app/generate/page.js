@@ -1,16 +1,9 @@
 "use client"
 
-import React, { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabaseClient'
 
-
-function roundUpToNextHour(d) {
-  const x = new Date(d)
-  x.setMinutes(0, 0, 0)
-  if (x <= d) x.setHours(x.getHours() + 1)
-  return x
-}
 
 function addHours(d, hours) {
   const x = new Date(d)
@@ -24,40 +17,6 @@ function sameDay(a, b) {
 
 function isOverlap(aStart, aEnd, bStart, bEnd) {
   return aStart < bEnd && bStart < aEnd
-}
-
-function findFirstGap(windowStart, windowEnd, busyIntervals, minHours) {
-  const minMs = minHours * 60 * 60 * 1000
-  const start = new Date(windowStart)
-  const end = new Date(windowEnd)
-  if (start >= end) return null
-
-  const intervals = busyIntervals
-    .map((iv) => ({
-      start: new Date(Math.max(start.getTime(), iv.start.getTime())),
-      end: new Date(Math.min(end.getTime(), iv.end.getTime())),
-    }))
-    .filter((iv) => iv.start < iv.end)
-    .sort((a, b) => a.start - b.start)
-
-  const merged = []
-  for (const iv of intervals) {
-    if (!merged.length || merged[merged.length - 1].end < iv.start) {
-      merged.push({ ...iv })
-    } else {
-      merged[merged.length - 1].end = new Date(Math.max(merged[merged.length - 1].end.getTime(), iv.end.getTime()))
-    }
-  }
-
-  let cursor = new Date(start)
-  for (const iv of merged) {
-    if (iv.start.getTime() - cursor.getTime() >= minMs) {
-      return new Date(cursor)
-    }
-    if (iv.end > cursor) cursor = new Date(iv.end)
-  }
-  if (end.getTime() - cursor.getTime() >= minMs) return new Date(cursor)
-  return null
 }
 
 async function fetchEventsFromDB() {
@@ -100,7 +59,7 @@ export default function GeneratePage() {
 
   const upcomingEvents = useMemo(() => {
     const now = new Date()
-    return [...generatedEvents]
+    return generatedEvents
       .filter((e) => new Date(e.end) >= now)
       .sort((a, b) => new Date(a.start) - new Date(b.start))
   }, [generatedEvents])
@@ -158,7 +117,6 @@ export default function GeneratePage() {
     const startOfToday = new Date(now)
     startOfToday.setHours(0, 0, 0, 0)
     const days = []
-    // Build the days list starting from the exam date back to today (reverse search)
     for (let d = new Date(exam); d >= startOfToday; d.setDate(d.getDate() - 1)) {
       days.push(new Date(d))
     }
@@ -181,7 +139,6 @@ export default function GeneratePage() {
         if (sameDay(day, exam)) windowEnd = new Date(Math.min(windowEnd, exam))
         if (windowStart >= windowEnd) continue
 
-        // Start searching from the latest possible full block within the window, moving backward by hour
         let hourStart = new Date(addHours(windowEnd, -block))
         hourStart.setMinutes(0, 0, 0)
         let placedToday = 0
@@ -271,9 +228,7 @@ export default function GeneratePage() {
       if (!map.has(key)) map.set(key, [])
       map.get(key).push(ev)
     }
-    for (const [k, arr] of map.entries()) {
-      arr.sort((a, b) => new Date(a.start) - new Date(b.start))
-    }
+  for (const arr of map.values()) arr.sort((a, b) => new Date(a.start) - new Date(b.start))
     return map
   }, [upcomingEvents])
 
@@ -282,7 +237,6 @@ export default function GeneratePage() {
   <h1 className="text-2xl font-bold mb-4">Study Scheduler</h1>
 
   <form onSubmit={generateSchedule} className="max-w-2xl grid gap-4">
-    {/* Exam name */}
     <div>
       <label className="block font-semibold">Exam name</label>
       <input
@@ -295,7 +249,6 @@ export default function GeneratePage() {
       />
     </div>
 
-    {/* Exam date */}
     <div>
       <label className="block font-semibold">Exam date and time</label>
       <input
@@ -306,8 +259,7 @@ export default function GeneratePage() {
         className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200"
       />
     </div>
-
-    {/* Study settings */}
+    
     <div className="flex flex-wrap gap-4">
       <label className="flex-1 min-w-[180px]">
         <span className="block font-semibold">Total study hours</span>
@@ -346,7 +298,6 @@ export default function GeneratePage() {
       </label>
     </div>
 
-    {/* Buttons */}
     <div className="flex gap-3 items-center">
       <button
         type="submit"
@@ -368,7 +319,6 @@ export default function GeneratePage() {
             </button>
     </div>
 
-    {/* Status message */}
     {status ? (
       <div className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg">
         {status}
@@ -376,7 +326,6 @@ export default function GeneratePage() {
     ) : null}
   </form>
 
-  {/* Upcoming schedule */}
   <div className="mt-8">
     <h2 className="text-xl font-semibold mb-3">Upcoming schedule</h2>
     {upcomingEvents.length === 0 ? (
