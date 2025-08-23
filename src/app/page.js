@@ -125,6 +125,8 @@ export default function WeekCalendar() {
                     month: "2-digit",
                     weekday: 'long'  // 08
                   }}
+                height="auto"         // 👈 calendar resizes to fit content
+                contentHeight="auto"
             />
         </div>
     );
