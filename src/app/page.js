@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect  } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
+import { supabase } from "../lib/supabaseClient";
 
 export default function WeekCalendar() {
     // give each event a stable id so we can remove them when clicked
@@ -25,6 +26,45 @@ export default function WeekCalendar() {
         setEnd("");
     }
 
+    async function loadEvents() {
+        try {
+          const { data, error } = await supabase.from("events").select("*");
+          if (error) {
+            console.error("Error fetching events:", error);
+            return;
+          }
+      
+          // Map DB events to FullCalendar format
+          const calendarEvents = data.map(ev => {
+            if (ev.repeat_weekly) {
+              const weekday = new Date(ev.start).getDay(); // 0 = Sunday
+              return {
+                id: ev.id,
+                title: ev.title,
+                daysOfWeek: [weekday],
+                startTime: new Date(ev.start).toTimeString().slice(0,5), // HH:MM
+                endTime: ev.end ? new Date(ev.end).toTimeString().slice(0,5) : undefined,
+                startRecur: ev.start.split("T")[0],
+                repeat_weekly: true
+              };
+            } else {
+              return {
+                id: ev.id,
+                title: ev.title,
+                start: ev.start,
+                end: ev.end,
+                repeat_weekly: false
+              };
+            }
+          });
+      
+          // Update state -> FullCalendar will automatically display
+          setEvents(calendarEvents);
+        } catch (err) {
+          console.error("Unexpected error fetching events:", err);
+        }
+      }
+
     function handleEventClick(info) {
         // info.event.id corresponds to the id we set on the event objects
         const clickedId = String(info.event.id);
@@ -36,44 +76,74 @@ export default function WeekCalendar() {
     function handleAddEvent(e) {
         e.preventDefault();
         if (!title || !start) return;
-    if (repeatWeekly) {
-            // normalize datetime-local values to include seconds if missing
+    
+        let newEvent;
+    
+        if (repeatWeekly) {
             const normalizedStart = start.length === 16 ? `${start}:00` : start;
-            const datePart = normalizedStart.split("T")[0]; // YYYY-MM-DD
-            const timePart = normalizedStart.split("T")[1]?.slice(0,8) ?? "00:00:00"; // HH:MM:SS
-
-            let endTime;
-            if (end) {
-                const normalizedEnd = end.length === 16 ? `${end}:00` : end;
-                endTime = normalizedEnd.split("T")[1]?.slice(0,8);
-            }
-
-            // determine weekday number for FullCalendar (0=Sunday .. 6=Saturday)
+            const datePart = normalizedStart.split("T")[0];
+            const timePart = normalizedStart.split("T")[1]?.slice(0, 8) ?? "00:00:00";
+    
             const weekday = new Date(normalizedStart).getDay();
-
-            const recurringEvent = {
+    
+            newEvent = {
                 id: String(idRef.current++),
                 title,
                 daysOfWeek: [weekday],
                 startTime: timePart,
-                endTime: endTime,
+                endTime: end ? (end.length === 16 ? `${end}:00` : end).split("T")[1]?.slice(0,8) : undefined,
                 startRecur: datePart,
+                repeat_weekly: true,
             };
-
-            setEvents((prev) => [...prev, recurringEvent]);
+    
+            setEvents(prev => [...prev, newEvent]);
+    
+            // Save to Supabase
+            supabase
+              .from('events')
+              .insert([{
+                  title: newEvent.title,
+                  start: newEvent.startRecur + "T" + newEvent.startTime,
+                  end: newEvent.endTime ? newEvent.startRecur + "T" + newEvent.endTime : null,
+                  repeat_weekly: true
+              }])
+              .then(({ error }) => {
+                  if (error) console.error('Error saving event:', error);
+              });
+    
         } else {
-            const newEvent = {
+            newEvent = {
                 id: String(idRef.current++),
                 title,
                 start: start.length === 16 ? `${start}:00` : start,
                 end: end ? (end.length === 16 ? `${end}:00` : end) : undefined,
+                repeat_weekly: false
             };
-
-            setEvents((prev) => [...prev, newEvent]);
+    
+            setEvents(prev => [...prev, newEvent]);
+    
+            // Save to Supabase
+            supabase
+              .from('events')
+              .insert([{
+                  title: newEvent.title,
+                  start: newEvent.start,
+                  end: newEvent.end || null,
+                  repeat_weekly: false
+              }])
+              .then(({ error }) => {
+                  if (error) console.error('Error saving event:', error);
+              });
         }
+    
         resetForm();
         setShowForm(false);
     }
+
+    useEffect(() => {
+        loadEvents();
+      }, []);
+    
 
     return (
         <div className="p-6">

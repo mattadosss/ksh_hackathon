@@ -20,7 +20,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className="bg-gray-100 text-black"
       >
         {children}
         <footer>
@@ -31,7 +31,7 @@ export default function RootLayout({ children }) {
                     {/* Left Logo */}
                     <div className="mb-6 md:mb-0">
                         <a className="flex items-center">
-                            <span className="self-center text-2xl font-bold whitespace-nowrap text-white">
+                            <span className="self-center text-2xl font-bold whitespace-nowrap">
                                 NONAME
                             </span>
                         </a>
@@ -39,8 +39,8 @@ export default function RootLayout({ children }) {
 
                     {/* Right Team */}
                     <div className="mb-6 md:mb-0 md:ml-auto">
-                        <h2 className="mb-6 text-2xl font-bold text-white">Team</h2>
-                        <ul className="text-gray-200 font-medium">
+                        <h2 className="mb-6 text-2xl font-bold ">Team</h2>
+                        <ul className=" font-medium">
                             <li className="mb-4">
                                 <a
                                     href="https://github.com/Hari-42"
