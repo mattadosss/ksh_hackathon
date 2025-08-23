@@ -6,7 +6,6 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 
 export default function WeekCalendar() {
-    // minimal events state so new events can be added at runtime
     const [events, setEvents] = useState([
         { title: "Team Meeting", start: "2025-08-25T10:00:00", end: "2025-08-25T11:00:00" },
         { title: "Workshop", start: "2025-08-27T14:00:00", end: "2025-08-27T16:00:00" },
@@ -16,6 +15,7 @@ export default function WeekCalendar() {
     const [title, setTitle] = useState("");
     const [start, setStart] = useState("");
     const [end, setEnd] = useState("");
+    const [repeatWeekly, setRepeatWeekly] = useState(false);
 
     function resetForm() {
         setTitle("");
@@ -25,17 +25,40 @@ export default function WeekCalendar() {
 
     function handleAddEvent(e) {
         e.preventDefault();
-        if (!title || !start) return; // require at least title and start
+        if (!title || !start) return;
+        if (repeatWeekly) {
+            // normalize datetime-local values to include seconds if missing
+            const normalizedStart = start.length === 16 ? `${start}:00` : start;
+            const datePart = normalizedStart.split("T")[0]; // YYYY-MM-DD
+            const timePart = normalizedStart.split("T")[1]?.slice(0,8) ?? "00:00:00"; // HH:MM:SS
 
-        // datetime-local inputs produce values like "2025-08-25T10:00"
-        // append seconds so FullCalendar treats them as full ISO datetimes
-        const newEvent = {
-            title,
-            start: start.length === 16 ? `${start}:00` : start,
-            end: end ? (end.length === 16 ? `${end}:00` : end) : undefined,
-        };
+            let endTime;
+            if (end) {
+                const normalizedEnd = end.length === 16 ? `${end}:00` : end;
+                endTime = normalizedEnd.split("T")[1]?.slice(0,8);
+            }
 
-        setEvents((prev) => [...prev, newEvent]);
+            // determine weekday number for FullCalendar (0=Sunday .. 6=Saturday)
+            const weekday = new Date(normalizedStart).getDay();
+
+            const recurringEvent = {
+                title,
+                daysOfWeek: [weekday],
+                startTime: timePart,
+                endTime: endTime,
+                startRecur: datePart,
+            };
+
+            setEvents((prev) => [...prev, recurringEvent]);
+        } else {
+            const newEvent = {
+                title,
+                start: start.length === 16 ? `${start}:00` : start,
+                end: end ? (end.length === 16 ? `${end}:00` : end) : undefined,
+            };
+
+            setEvents((prev) => [...prev, newEvent]);
+        }
         resetForm();
         setShowForm(false);
     }
@@ -88,6 +111,15 @@ export default function WeekCalendar() {
                                 className="mt-1 w-full border rounded px-2 py-1"
                             />
                         </label>
+                        <label className="col-span-1 flex items-center space-x-2">
+                            <input
+                                type="checkbox"
+                                checked={repeatWeekly}
+                                onChange={(e) => setRepeatWeekly(e.target.checked)}
+                                className="w-4 h-4"
+                            />
+                            <span className="text-sm">Repeat weekly</span>
+                        </label>
                     </div>
 
                     <div className="mt-3">
@@ -99,7 +131,6 @@ export default function WeekCalendar() {
             )}
 
             <FullCalendar
-                firstDay={1}
                 plugins={[dayGridPlugin, timeGridPlugin]}
                 initialView="timeGridWeek"
                 events={events}
@@ -108,23 +139,6 @@ export default function WeekCalendar() {
                     center: "title",
                     right: "dayGridMonth,timeGridWeek,timeGridDay",
                 }}
-                // 👇 Add this block for 24-hour format
-                eventTimeFormat={{
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    hour12: false, // ✅ 24-hour system
-                }}
-                // 👇 This controls the hour labels on the left in week/day views
-                slotLabelFormat={{
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    hour12: false,
-                }}
-                dayHeaderFormat={{
-                    day: "2-digit",   // 23
-                    month: "2-digit",
-                    weekday: 'long'  // 08
-                  }}
             />
         </div>
     );
