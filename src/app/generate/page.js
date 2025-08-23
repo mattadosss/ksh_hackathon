@@ -158,11 +158,10 @@ export default function GeneratePage() {
     const startOfToday = new Date(now)
     startOfToday.setHours(0, 0, 0, 0)
     const days = []
-    for (let d = new Date(startOfToday); d <= exam; d.setDate(d.getDate() + 1)) {
+    // Build the days list starting from the exam date back to today (reverse search)
+    for (let d = new Date(exam); d >= startOfToday; d.setDate(d.getDate() - 1)) {
       days.push(new Date(d))
     }
-
-    // Round-robin with per-day cap: try up to 2 sessions per day per pass
     const perDayCap = 2
     let safety = 0
     while (remaining > 0 && safety < 10000) {
@@ -182,11 +181,16 @@ export default function GeneratePage() {
         if (sameDay(day, exam)) windowEnd = new Date(Math.min(windowEnd, exam))
         if (windowStart >= windowEnd) continue
 
-        let hourStart = roundUpToNextHour(windowStart)
+        // Start searching from the latest possible full block within the window, moving backward by hour
+        let hourStart = new Date(addHours(windowEnd, -block))
+        hourStart.setMinutes(0, 0, 0)
         let placedToday = 0
-        while (remaining > 0 && placedToday < perDayCap && addHours(hourStart, block) <= windowEnd) {
+        while (remaining > 0 && placedToday < perDayCap && hourStart >= windowStart) {
           const hourEnd = addHours(hourStart, block)
-          // Build busy intervals without buffer to allow back-to-back sessions
+          if (hourEnd > windowEnd) {
+            hourStart = addHours(hourStart, -1)
+            continue
+          }
           const busy = existingExpanded
             .concat(newEvents.map((n) => ({ start: new Date(n.start), end: new Date(n.end) })))
             .concat(generatedEvents.map((n) => ({ start: new Date(n.start), end: new Date(n.end) })))
@@ -205,18 +209,16 @@ export default function GeneratePage() {
             placedToday++
             placedThisRound++
           }
-          hourStart = addHours(hourStart, 1)
+          hourStart = addHours(hourStart, -1)
         }
       }
-      if (placedThisRound === 0) break // nowhere to place more
+      if (placedThisRound === 0) break
     }
 
     if (newEvents.length === 0) {
       setStatus('No available slots found before the exam within your daily window.')
       return
     }
-
-    // Save to Supabase so they appear on the home calendar
     const { data, error } = await supabase
       .from('events')
       .insert(newEvents.map((ev) => ({ title: ev.title, start: ev.start, end: ev.end, repeat_weekly: false })))
@@ -242,7 +244,6 @@ export default function GeneratePage() {
     } else {
       setStatus(`Scheduled ${total}h across ${inserted.length} session(s). Added to calendar.`)
     }
-    // Redirect to main calendar
     router.push('/')
   }
 
