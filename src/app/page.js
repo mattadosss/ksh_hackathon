@@ -1,136 +1,138 @@
 "use client";
 
-import { useState, useRef, useEffect  } from "react";
+import { useState, useRef, useEffect } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import { supabase } from "../lib/supabaseClient";
 
 export default function WeekCalendar() {
-    const [events, setEvents] = useState([
-        { id: "1", title: "Team Meeting", start: "2025-08-25T10:00:00", end: "2025-08-25T11:00:00" },
-        { id: "2", title: "Workshop", start: "2025-08-27T14:00:00", end: "2025-08-27T16:00:00" },
-    ]);
-    const idRef = useRef(3);
+    const [events, setEvents] = useState([]);
+    const idRef = useRef(1);
 
     const [showForm, setShowForm] = useState(false);
     const [title, setTitle] = useState("");
     const [start, setStart] = useState("");
     const [end, setEnd] = useState("");
     const [repeatWeekly, setRepeatWeekly] = useState(false);
+    const [repeatDays, setRepeatDays] = useState([]);
+
+    const weekdays = [
+        { value: 0, label: "Sunday" },
+        { value: 1, label: "Monday" },
+        { value: 2, label: "Tuesday" },
+        { value: 3, label: "Wednesday" },
+        { value: 4, label: "Thursday" },
+        { value: 5, label: "Friday" },
+        { value: 6, label: "Saturday" },
+    ];
 
     function resetForm() {
         setTitle("");
         setStart("");
         setEnd("");
+        setRepeatWeekly(false);
+        setRepeatDays([]);
     }
 
     async function loadEvents() {
         try {
-          const { data, error } = await supabase.from("events").select("*");
-          if (error) {
-            console.error("Error fetching events:", error);
-            return;
-          }
-      
-          const calendarEvents = data.map(ev => {
-            if (ev.repeat_weekly) {
-              const weekday = new Date(ev.start).getDay(); 
-              return {
-                id: ev.id,
-                title: ev.title,
-                daysOfWeek: [weekday],
-                startTime: new Date(ev.start).toTimeString().slice(0,5), 
-                endTime: ev.end ? new Date(ev.end).toTimeString().slice(0,5) : undefined,
-                startRecur: ev.start.split("T")[0],
-                repeat_weekly: true
-              };
-            } else {
-              return {
-                id: ev.id,
-                title: ev.title,
-                start: ev.start,
-                end: ev.end,
-                repeat_weekly: false
-              };
+            const { data, error } = await supabase.from("events").select("*");
+            if (error) {
+                console.error("Error fetching events:", error);
+                return;
             }
-          });
-      
-          setEvents(calendarEvents);
-        } catch (err) {
-          console.error("Unexpected error fetching events:", err);
-        }
-      }
 
-      function handleEventClick(info) {
+            const calendarEvents = data.map(ev => {
+                if (ev.repeat_weekly) {
+                    return {
+                        id: ev.id,
+                        title: ev.title,
+                        daysOfWeek: ev.days_of_week || [],
+                        startTime: new Date(ev.start).toTimeString().slice(0, 5),
+                        endTime: ev.end ? new Date(ev.end).toTimeString().slice(0, 5) : undefined,
+                        startRecur: ev.start.split("T")[0],
+                        repeat_weekly: true
+                    };
+                } else {
+                    return {
+                        id: ev.id,
+                        title: ev.title,
+                        start: ev.start,
+                        end: ev.end,
+                        repeat_weekly: false
+                    };
+                }
+            });
+
+            setEvents(calendarEvents);
+        } catch (err) {
+            console.error("Unexpected error fetching events:", err);
+        }
+    }
+
+    function handleEventClick(info) {
         const clickedId = String(info.event.id);
         const confirmDelete = window.confirm(`Delete event "${info.event.title}"?`);
         if (!confirmDelete) return;
-      
-    
-        setEvents((prev) => prev.filter((ev) => String(ev.id) !== clickedId));
-      
-       
-        deleteEventFromDB(clickedId);
-      }
-      
 
-  
+        setEvents(prev => prev.filter(ev => String(ev.id) !== clickedId));
+        deleteEventFromDB(clickedId);
+    }
+
     async function deleteEventFromDB(id) {
         const { error } = await supabase.from("events").delete().eq("id", id);
         if (error) {
-        console.error("Error deleting event:", error);
+            console.error("Error deleting event:", error);
         } else {
-        console.log(`Event ${id} deleted successfully`);
+            console.log(`Event ${id} deleted successfully`);
         }
     }
-  
-    function adjustForTimezone(dateString) {
-        const date = new Date(dateString);
-        date.setHours(date.getHours() - 2);
-        return date.toISOString().slice(0,19); 
-      }
+
+    function toggleRepeatDay(dayValue) {
+        setRepeatDays(prev =>
+            prev.includes(dayValue)
+                ? prev.filter(d => d !== dayValue)
+                : [...prev, dayValue]
+        );
+    }
 
     function handleAddEvent(e) {
         e.preventDefault();
         if (!title || !start) return;
-    
+
         let newEvent;
-    
+
         if (repeatWeekly) {
             const normalizedStart = start.length === 16 ? `${start}:00` : start;
             const datePart = normalizedStart.split("T")[0];
             const timePart = normalizedStart.split("T")[1]?.slice(0, 8) ?? "00:00:00";
-    
-            const weekday = new Date(normalizedStart).getDay();
-    
+
             newEvent = {
                 id: String(idRef.current++),
                 title,
-                daysOfWeek: [weekday],
+                daysOfWeek: repeatDays,
                 startTime: timePart,
-                endTime: end ? (end.length === 16 ? `${end}:00` : end).split("T")[1]?.slice(0,8) : undefined,
+                endTime: end ? (end.length === 16 ? `${end}:00` : end).split("T")[1]?.slice(0, 8) : undefined,
                 startRecur: datePart,
                 repeat_weekly: true,
             };
-    
-            setEvents(prev => [...prev, newEvent]);
-    
-            supabase
-            .from('events')
-            .insert([{
-                title: newEvent.title,
-                start: new Date(newEvent.startRecur + "T" + newEvent.startTime).toISOString(),
-                end: newEvent.endTime
-                ? new Date(newEvent.startRecur + "T" + newEvent.endTime).toISOString()
-                : null,
-                repeat_weekly: true
-            }])
-            .then(({ error }) => {
-                if (error) console.error('Error saving event:', error);
-            });
 
-    
+            setEvents(prev => [...prev, newEvent]);
+
+            supabase
+                .from("events")
+                .insert([{
+                    title: newEvent.title,
+                    start: new Date(newEvent.startRecur + "T" + newEvent.startTime).toISOString(),
+                    end: newEvent.endTime ? new Date(newEvent.startRecur + "T" + newEvent.endTime).toISOString() : null,
+                    repeat_weekly: true,
+                    days_of_week: repeatDays
+                }])
+                .then(({ error }) => {
+                    if (error) console.error("Error saving event:", error);
+                });
+
         } else {
             newEvent = {
                 id: String(idRef.current++),
@@ -139,31 +141,30 @@ export default function WeekCalendar() {
                 end: end ? (end.length === 16 ? `${end}:00` : end) : undefined,
                 repeat_weekly: false
             };
-    
-            setEvents(prev => [...prev, newEvent]);
-    
-            supabase
-            .from('events')
-            .insert([{
-                title: newEvent.title,
-                start: new Date(newEvent.start).toISOString(),
-                end: newEvent.end ? new Date(newEvent.end).toISOString() : null,
-                repeat_weekly: false
-            }])
-            .then(({ error }) => {
-                if (error) console.error('Error saving event:', error);
-            });
 
+            setEvents(prev => [...prev, newEvent]);
+
+            supabase
+                .from("events")
+                .insert([{
+                    title: newEvent.title,
+                    start: new Date(newEvent.start).toISOString(),
+                    end: newEvent.end ? new Date(newEvent.end).toISOString() : null,
+                    repeat_weekly: false,
+                    days_of_week: null
+                }])
+                .then(({ error }) => {
+                    if (error) console.error("Error saving event:", error);
+                });
         }
-    
+
         resetForm();
         setShowForm(false);
     }
 
     useEffect(() => {
         loadEvents();
-      }, []);
-    
+    }, []);
 
     return (
         <div className="p-6">
@@ -171,16 +172,17 @@ export default function WeekCalendar() {
                 <h1 className="text-2xl font-semibold">Calendar</h1>
                 <div>
                     <button
-                        onClick={() => setShowForm((s) => !s)}
+                        onClick={() => setShowForm(s => !s)}
                         className="rounded bg-blue-600 text-white px-3 py-1.5 hover:bg-blue-700"
                     >
                         {showForm ? "Cancel" : "Create Event"}
                     </button>
                     <button
-                    className="ml-5 rounded bg-blue-600 text-white px-3 py-1.5 hover:bg-blue-700"
-                    onClick={() => (window.location.href = "/generate")}>
-                Generate Studyplan
-            </button>
+                        className="ml-5 rounded bg-blue-600 text-white px-3 py-1.5 hover:bg-blue-700"
+                        onClick={() => (window.location.href = "/generate")}
+                    >
+                        Generate Studyplan
+                    </button>
                 </div>
             </div>
 
@@ -192,7 +194,7 @@ export default function WeekCalendar() {
                             <input
                                 required
                                 value={title}
-                                onChange={(e) => setTitle(e.target.value)}
+                                onChange={e => setTitle(e.target.value)}
                                 className="mt-1 w-full border rounded px-2 py-1"
                                 placeholder="Event title"
                             />
@@ -204,7 +206,7 @@ export default function WeekCalendar() {
                                 required
                                 type="datetime-local"
                                 value={start}
-                                onChange={(e) => setStart(e.target.value)}
+                                onChange={e => setStart(e.target.value)}
                                 className="mt-1 w-full border rounded px-2 py-1"
                             />
                         </label>
@@ -214,23 +216,43 @@ export default function WeekCalendar() {
                             <input
                                 type="datetime-local"
                                 value={end}
-                                onChange={(e) => setEnd(e.target.value)}
+                                onChange={e => setEnd(e.target.value)}
                                 className="mt-1 w-full border rounded px-2 py-1"
                             />
                         </label>
+
                         <label className="col-span-1 flex items-center space-x-2">
                             <input
                                 type="checkbox"
                                 checked={repeatWeekly}
-                                onChange={(e) => setRepeatWeekly(e.target.checked)}
+                                onChange={e => setRepeatWeekly(e.target.checked)}
                                 className="w-4 h-4"
                             />
                             <span className="text-sm">Repeat weekly</span>
                         </label>
                     </div>
 
+                    {repeatWeekly && (
+                        <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            {weekdays.map(day => (
+                                <label key={day.value} className="flex items-center space-x-2">
+                                    <input
+                                        type="checkbox"
+                                        checked={repeatDays.includes(day.value)}
+                                        onChange={() => toggleRepeatDay(day.value)}
+                                        className="w-4 h-4"
+                                    />
+                                    <span>{day.label}</span>
+                                </label>
+                            ))}
+                        </div>
+                    )}
+
                     <div className="mt-3">
-                        <button className="rounded bg-green-600 text-white px-3 py-1.5 hover:bg-green-700" type="submit">
+                        <button
+                            className="rounded bg-green-600 text-white px-3 py-1.5 hover:bg-green-700"
+                            type="submit"
+                        >
                             Add Event
                         </button>
                     </div>
@@ -248,7 +270,7 @@ export default function WeekCalendar() {
                     center: "title",
                     right: "dayGridMonth,timeGridWeek,timeGridDay",
                 }}
-                height="auto" 
+                height="auto"
                 contentHeight="auto"
                 eventTimeFormat={{
                     hour: "2-digit",
@@ -261,10 +283,10 @@ export default function WeekCalendar() {
                     hour12: false,
                 }}
                 dayHeaderFormat={{
-                    day: "2-digit",   
+                    day: "2-digit",
                     month: "2-digit",
-                    weekday: 'long'  
-                  }}
+                    weekday: "long"
+                }}
             />
         </div>
     );
