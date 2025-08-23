@@ -1,15 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 
 export default function WeekCalendar() {
+    // give each event a stable id so we can remove them when clicked
     const [events, setEvents] = useState([
-        { title: "Team Meeting", start: "2025-08-25T10:00:00", end: "2025-08-25T11:00:00" },
-        { title: "Workshop", start: "2025-08-27T14:00:00", end: "2025-08-27T16:00:00" },
+        { id: "1", title: "Team Meeting", start: "2025-08-25T10:00:00", end: "2025-08-25T11:00:00" },
+        { id: "2", title: "Workshop", start: "2025-08-27T14:00:00", end: "2025-08-27T16:00:00" },
     ]);
+    const idRef = useRef(3);
 
     const [showForm, setShowForm] = useState(false);
     const [title, setTitle] = useState("");
@@ -23,10 +25,18 @@ export default function WeekCalendar() {
         setEnd("");
     }
 
+    function handleEventClick(info) {
+        // info.event.id corresponds to the id we set on the event objects
+        const clickedId = String(info.event.id);
+        const confirmDelete = window.confirm(`Delete event "${info.event.title}"?`);
+        if (!confirmDelete) return;
+        setEvents((prev) => prev.filter((ev) => String(ev.id) !== clickedId));
+    }
+
     function handleAddEvent(e) {
         e.preventDefault();
         if (!title || !start) return;
-        if (repeatWeekly) {
+    if (repeatWeekly) {
             // normalize datetime-local values to include seconds if missing
             const normalizedStart = start.length === 16 ? `${start}:00` : start;
             const datePart = normalizedStart.split("T")[0]; // YYYY-MM-DD
@@ -42,6 +52,7 @@ export default function WeekCalendar() {
             const weekday = new Date(normalizedStart).getDay();
 
             const recurringEvent = {
+                id: String(idRef.current++),
                 title,
                 daysOfWeek: [weekday],
                 startTime: timePart,
@@ -52,6 +63,7 @@ export default function WeekCalendar() {
             setEvents((prev) => [...prev, recurringEvent]);
         } else {
             const newEvent = {
+                id: String(idRef.current++),
                 title,
                 start: start.length === 16 ? `${start}:00` : start,
                 end: end ? (end.length === 16 ? `${end}:00` : end) : undefined,
@@ -134,28 +146,12 @@ export default function WeekCalendar() {
                 plugins={[dayGridPlugin, timeGridPlugin]}
                 initialView="timeGridWeek"
                 events={events}
+                eventClick={handleEventClick}
                 headerToolbar={{
                     left: "prev,next today",
                     center: "title",
                     right: "dayGridMonth,timeGridWeek,timeGridDay",
                 }}
-                // 👇 Add this block for 24-hour format
-                eventTimeFormat={{
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    hour12: false, // ✅ 24-hour system
-                }}
-                // 👇 This controls the hour labels on the left in week/day views
-                slotLabelFormat={{
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    hour12: false,
-                }}
-                dayHeaderFormat={{
-                    day: "2-digit",   // 23
-                    month: "2-digit",
-                    weekday: 'long'  // 08
-                  }}
             />
         </div>
     );
