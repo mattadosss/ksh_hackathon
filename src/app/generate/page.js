@@ -234,105 +234,145 @@ export default function GeneratePage() {
   }, [upcomingEvents])
 
   return (
-    <div style={{ padding: 24, fontFamily: 'system-ui, sans-serif', lineHeight: 1.4 }}>
-      <h1 style={{ marginBottom: 12 }}>Study Scheduler</h1>
+    <div className="p-6 font-sans leading-relaxed">
+  <h1 className="text-2xl font-bold mb-4">Study Scheduler</h1>
 
-      <form onSubmit={generateSchedule} style={{ maxWidth: 720, display: 'grid', gap: 12 }}>
-        <div>
-          <label style={{ display: 'block', fontWeight: 600 }}>Exam name</label>
-          <input
-            type="text"
-            value={examName}
-            onChange={(e) => setExamName(e.target.value)}
-            placeholder="e.g., Calculus Midterm"
-            required
-            style={{ display: 'block', width: '100%', padding: 8, marginTop: 6 }}
-          />
-        </div>
-        <div>
-          <label style={{ display: 'block', fontWeight: 600 }}>Exam date and time</label>
-          <input
-            type="datetime-local"
-            value={examDate}
-            onChange={(e) => setExamDate(e.target.value)}
-            required
-            style={{ display: 'block', padding: 8, marginTop: 6 }}
-          />
-        </div>
-    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <label style={{ flex: '1 1 180px' }}>
-            <span style={{ display: 'block', fontWeight: 600 }}>Total study hours</span>
-            <input
-              type="number"
-      min={1}
-      step={1}
-              value={totalHours}
-              onChange={(e) => setTotalHours(e.target.value)}
-              style={{ display: 'block', width: '100%', padding: 8, marginTop: 6 }}
-            />
-          </label>
-          <label style={{ flex: '1 1 140px' }}>
-            <span style={{ display: 'block', fontWeight: 600 }}>Day start hour</span>
-            <input
-              type="number"
-              min={0}
-              max={23}
-              step={1}
-              value={dayStartHour}
-              onChange={(e) => setDayStartHour(Number(e.target.value))}
-              style={{ display: 'block', width: '100%', padding: 8, marginTop: 6 }}
-            />
-          </label>
-          <label style={{ flex: '1 1 140px' }}>
-            <span style={{ display: 'block', fontWeight: 600 }}>Day end hour</span>
-            <input
-              type="number"
-              min={0}
-              max={23}
-              step={1}
-              value={dayEndHour}
-              onChange={(e) => setDayEndHour(Number(e.target.value))}
-              style={{ display: 'block', width: '100%', padding: 8, marginTop: 6 }}
-            />
-          </label>
-        </div>
-
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button type="submit" style={{ padding: '8px 14px' }}>Generate schedule</button>
-          <button type="button" onClick={clearAll} style={{ padding: '8px 14px' }}>Clear all</button>
-        </div>
-        {status ? (
-          <div style={{ padding: '8px 10px', background: '#f5f5f5', borderRadius: 6 }}>{status}</div>
-        ) : null}
-      </form>
-
-      <div style={{ marginTop: 24 }}>
-        <h2 style={{ margin: '12px 0' }}>Upcoming schedule</h2>
-        {upcomingEvents.length === 0 ? (
-          <div style={{ color: '#666' }}>No events scheduled yet.</div>
-        ) : (
-          <div style={{ display: 'grid', gap: 16 }}>
-            {[...grouped.entries()].map(([dateLabel, list]) => (
-              <div key={dateLabel} style={{ border: '1px solid #e5e7eb', borderRadius: 8 }}>
-                <div style={{ padding: '8px 12px', background: '#fafafa', borderBottom: '1px solid #e5e7eb', fontWeight: 600 }}>{dateLabel}</div>
-                <ul style={{ listStyle: 'none', margin: 0, padding: 12 }}>
-                  {list.map((ev) => {
-                    const s = new Date(ev.start)
-                    const e = new Date(ev.end)
-                    const time = s.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' - ' + e.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                    return (
-                      <li key={ev.id} style={{ padding: '6px 0', display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                        <span>{ev.title}</span>
-                        <span style={{ color: '#555' }}>{time}</span>
-                      </li>
-                    )
-                  })}
-                </ul>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+  <form onSubmit={generateSchedule} className="max-w-2xl grid gap-4">
+    {/* Exam name */}
+    <div>
+      <label className="block font-semibold">Exam name</label>
+      <input
+        type="text"
+        value={examName}
+        onChange={(e) => setExamName(e.target.value)}
+        placeholder="e.g., Calculus Midterm"
+        required
+        className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200"
+      />
     </div>
+
+    {/* Exam date */}
+    <div>
+      <label className="block font-semibold">Exam date and time</label>
+      <input
+        type="datetime-local"
+        value={examDate}
+        onChange={(e) => setExamDate(e.target.value)}
+        required
+        className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200"
+      />
+    </div>
+
+    {/* Study settings */}
+    <div className="flex flex-wrap gap-4">
+      <label className="flex-1 min-w-[180px]">
+        <span className="block font-semibold">Total study hours</span>
+        <input
+          type="number"
+          min={1}
+          step={1}
+          value={totalHours}
+          onChange={(e) => setTotalHours(e.target.value)}
+          className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200"
+        />
+      </label>
+      <label className="flex-1 min-w-[140px]">
+        <span className="block font-semibold">Day start hour</span>
+        <input
+          type="number"
+          min={0}
+          max={23}
+          step={1}
+          value={dayStartHour}
+          onChange={(e) => setDayStartHour(Number(e.target.value))}
+          className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200"
+        />
+      </label>
+      <label className="flex-1 min-w-[140px]">
+        <span className="block font-semibold">Day end hour</span>
+        <input
+          type="number"
+          min={0}
+          max={23}
+          step={1}
+          value={dayEndHour}
+          onChange={(e) => setDayEndHour(Number(e.target.value))}
+          className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200"
+        />
+      </label>
+    </div>
+
+    {/* Buttons */}
+    <div className="flex gap-3 items-center">
+      <button
+        type="submit"
+        className="px-4 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition"
+      >
+        Generate schedule
+      </button>
+      <button
+        type="button"
+        onClick={clearAll}
+        className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg shadow hover:bg-gray-300 transition"
+      >
+        Clear all
+      </button>
+      <button
+        className="ml-5 rounded bg-blue-600 text-white px-3 py-1.5 hover:bg-blue-700"
+        onClick={() => (window.location.href = "/")}>
+                Get Back
+            </button>
+    </div>
+
+    {/* Status message */}
+    {status ? (
+      <div className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg">
+        {status}
+      </div>
+    ) : null}
+  </form>
+
+  {/* Upcoming schedule */}
+  <div className="mt-8">
+    <h2 className="text-xl font-semibold mb-3">Upcoming schedule</h2>
+    {upcomingEvents.length === 0 ? (
+      <div className="text-gray-500">No events scheduled yet.</div>
+    ) : (
+      <div className="grid gap-4">
+        {[...grouped.entries()].map(([dateLabel, list]) => (
+          <div
+            key={dateLabel}
+            className="border border-gray-200 rounded-lg overflow-hidden shadow-sm"
+          >
+            <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 font-semibold">
+              {dateLabel}
+            </div>
+            <ul className="list-none m-0 p-3 space-y-2">
+              {list.map((ev) => {
+                const s = new Date(ev.start)
+                const e = new Date(ev.end)
+                const time =
+                  s.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) +
+                  ' - ' +
+                  e.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+
+                return (
+                  <li
+                    key={ev.id}
+                    className="flex justify-between items-center py-1"
+                  >
+                    <span>{ev.title}</span>
+                    <span className="text-gray-600 text-sm">{time}</span>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+</div>
+
   )
 }
