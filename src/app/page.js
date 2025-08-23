@@ -7,7 +7,6 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import { supabase } from "../lib/supabaseClient";
 
 export default function WeekCalendar() {
-    // give each event a stable id so we can remove them when clicked
     const [events, setEvents] = useState([
         { id: "1", title: "Team Meeting", start: "2025-08-25T10:00:00", end: "2025-08-25T11:00:00" },
         { id: "2", title: "Workshop", start: "2025-08-27T14:00:00", end: "2025-08-27T16:00:00" },
@@ -19,114 +18,111 @@ export default function WeekCalendar() {
     const [start, setStart] = useState("");
     const [end, setEnd] = useState("");
     const [repeatWeekly, setRepeatWeekly] = useState(false);
+    const [selectedDays, setSelectedDays] = useState([]); // NEU: Wochentage für Weekly
 
     function resetForm() {
         setTitle("");
         setStart("");
         setEnd("");
+        setSelectedDays([]);
+        setRepeatWeekly(false);
     }
 
     async function loadEvents() {
         try {
-          const { data, error } = await supabase.from("events").select("*");
-          if (error) {
-            console.error("Error fetching events:", error);
-            return;
-          }
-      
-          // Map DB events to FullCalendar format
-          const calendarEvents = data.map(ev => {
-            if (ev.repeat_weekly) {
-              const weekday = new Date(ev.start).getDay(); // 0 = Sunday
-              return {
-                id: ev.id,
-                title: ev.title,
-                daysOfWeek: [weekday],
-                startTime: new Date(ev.start).toTimeString().slice(0,5), // HH:MM
-                endTime: ev.end ? new Date(ev.end).toTimeString().slice(0,5) : undefined,
-                startRecur: ev.start.split("T")[0],
-                repeat_weekly: true
-              };
-            } else {
-              return {
-                id: ev.id,
-                title: ev.title,
-                start: ev.start,
-                end: ev.end,
-                repeat_weekly: false
-              };
+            const { data, error } = await supabase.from("events").select("*");
+            if (error) {
+                console.error("Error fetching events:", error);
+                return;
             }
-          });
-      
-          // Update state -> FullCalendar will automatically display
-          setEvents(calendarEvents);
-        } catch (err) {
-          console.error("Unexpected error fetching events:", err);
-        }
-      }
 
-      function handleEventClick(info) {
+            const calendarEvents = data.map(ev => {
+                if (ev.repeat_weekly) {
+                    return {
+                        id: ev.id,
+                        title: ev.title,
+                        daysOfWeek: ev.days_of_week || [],
+                        startTime: new Date(ev.start).toTimeString().slice(0,5),
+                        endTime: ev.end ? new Date(ev.end).toTimeString().slice(0,5) : undefined,
+                        startRecur: ev.start.split("T")[0],
+                        repeat_weekly: true
+                    };
+                } else {
+                    return {
+                        id: ev.id,
+                        title: ev.title,
+                        start: ev.start,
+                        end: ev.end,
+                        repeat_weekly: false
+                    };
+                }
+            });
+
+            setEvents(calendarEvents);
+        } catch (err) {
+            console.error("Unexpected error fetching events:", err);
+        }
+    }
+
+    function handleEventClick(info) {
         const clickedId = String(info.event.id);
         const confirmDelete = window.confirm(`Delete event "${info.event.title}"?`);
         if (!confirmDelete) return;
-      
-        // 1. remove from UI
-        setEvents((prev) => prev.filter((ev) => String(ev.id) !== clickedId));
-      
-        // 2. remove from Supabase
-        deleteEventFromDB(clickedId);
-      }
-      
 
-    // 🔴 Delete event from Supabase
+        setEvents((prev) => prev.filter((ev) => String(ev.id) !== clickedId));
+        deleteEventFromDB(clickedId);
+    }
+
     async function deleteEventFromDB(id) {
         const { error } = await supabase.from("events").delete().eq("id", id);
         if (error) {
-        console.error("Error deleting event:", error);
+            console.error("Error deleting event:", error);
         } else {
-        console.log(`Event ${id} deleted successfully`);
+            console.log(`Event ${id} deleted successfully`);
         }
     }
-  
 
     function handleAddEvent(e) {
         e.preventDefault();
         if (!title || !start) return;
-    
+
         let newEvent;
-    
+
         if (repeatWeekly) {
+            if (selectedDays.length === 0) {
+                alert("Bitte wähle mindestens einen Wochentag aus.");
+                return;
+            }
+
             const normalizedStart = start.length === 16 ? `${start}:00` : start;
             const datePart = normalizedStart.split("T")[0];
             const timePart = normalizedStart.split("T")[1]?.slice(0, 8) ?? "00:00:00";
-    
-            const weekday = new Date(normalizedStart).getDay();
-    
+
             newEvent = {
                 id: String(idRef.current++),
                 title,
-                daysOfWeek: [weekday],
+                daysOfWeek: selectedDays,
                 startTime: timePart,
                 endTime: end ? (end.length === 16 ? `${end}:00` : end).split("T")[1]?.slice(0,8) : undefined,
                 startRecur: datePart,
                 repeat_weekly: true,
             };
-    
+
             setEvents(prev => [...prev, newEvent]);
-    
-            // Save to Supabase
+
             supabase
-              .from('events')
-              .insert([{
-                  title: newEvent.title,
-                  start: newEvent.startRecur + "T" + newEvent.startTime,
-                  end: newEvent.endTime ? newEvent.startRecur + "T" + newEvent.endTime : null,
-                  repeat_weekly: true
-              }])
-              .then(({ error }) => {
-                  if (error) console.error('Error saving event:', error);
-              });
-    
+                .from('events')
+                .insert([{
+                    title: newEvent.title,
+                    start: newEvent.startRecur + "T" + newEvent.startTime,
+                    end: newEvent.endTime ? newEvent.startRecur + "T" + newEvent.endTime : null,
+                    repeat_weekly: true,
+                    days_of_week: newEvent.daysOfWeek // NEU: mehrere Wochentage speichern
+                }])
+                .then(({ error }) => {
+                    if (error) console.error('Error saving event:', error);
+                });
+
         } else {
             newEvent = {
                 id: String(idRef.current++),
@@ -135,31 +131,29 @@ export default function WeekCalendar() {
                 end: end ? (end.length === 16 ? `${end}:00` : end) : undefined,
                 repeat_weekly: false
             };
-    
+
             setEvents(prev => [...prev, newEvent]);
-    
-            // Save to Supabase
+
             supabase
-              .from('events')
-              .insert([{
-                  title: newEvent.title,
-                  start: newEvent.start,
-                  end: newEvent.end || null,
-                  repeat_weekly: false
-              }])
-              .then(({ error }) => {
-                  if (error) console.error('Error saving event:', error);
-              });
+                .from('events')
+                .insert([{
+                    title: newEvent.title,
+                    start: newEvent.start,
+                    end: newEvent.end || null,
+                    repeat_weekly: false
+                }])
+                .then(({ error }) => {
+                    if (error) console.error('Error saving event:', error);
+                });
         }
-    
+
         resetForm();
         setShowForm(false);
     }
 
     useEffect(() => {
         loadEvents();
-      }, []);
-    
+    }, []);
 
     return (
         <div className="p-6">
@@ -209,6 +203,7 @@ export default function WeekCalendar() {
                                 className="mt-1 w-full border rounded px-2 py-1"
                             />
                         </label>
+
                         <label className="col-span-1 flex items-center space-x-2">
                             <input
                                 type="checkbox"
@@ -218,6 +213,29 @@ export default function WeekCalendar() {
                             />
                             <span className="text-sm">Repeat weekly</span>
                         </label>
+
+                        {/* NEU: Wochentage auswählen */}
+                        {repeatWeekly && (
+                            <div className="col-span-3 mt-2 grid grid-cols-7 gap-1">
+                                {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((day, idx) => (
+                                    <label key={idx} className="flex flex-col items-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedDays.includes(idx)}
+                                            onChange={(e) => {
+                                                if (e.target.checked) {
+                                                    setSelectedDays([...selectedDays, idx]);
+                                                } else {
+                                                    setSelectedDays(selectedDays.filter(d => d !== idx));
+                                                }
+                                            }}
+                                            className="w-4 h-4"
+                                        />
+                                        <span className="text-xs">{day}</span>
+                                    </label>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     <div className="mt-3">
@@ -239,7 +257,7 @@ export default function WeekCalendar() {
                     center: "title",
                     right: "dayGridMonth,timeGridWeek,timeGridDay",
                 }}
-                height="auto" 
+                height="auto"
                 contentHeight="auto"
                 eventTimeFormat={{
                     hour: "2-digit",
@@ -252,10 +270,10 @@ export default function WeekCalendar() {
                     hour12: false,
                 }}
                 dayHeaderFormat={{
-                    day: "2-digit",   // 23
+                    day: "2-digit",
                     month: "2-digit",
-                    weekday: 'long'  // 08
-                  }}
+                    weekday: 'long'
+                }}
             />
         </div>
     );
