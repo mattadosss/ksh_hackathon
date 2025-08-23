@@ -8,6 +8,7 @@ export default function WeekCalendar() {
     return (
         <div className="p-6">
             <FullCalendar
+                firstDay={1}
                 plugins={[dayGridPlugin, timeGridPlugin]}
                 initialView="timeGridWeek" // 👈 week view
                 events={[
@@ -19,6 +20,23 @@ export default function WeekCalendar() {
                     center: "title",
                     right: "dayGridMonth,timeGridWeek,timeGridDay",
                 }}
+                // 👇 Add this block for 24-hour format
+                eventTimeFormat={{
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false, // ✅ 24-hour system
+                }}
+                // 👇 This controls the hour labels on the left in week/day views
+                slotLabelFormat={{
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false,
+                }}
+                dayHeaderFormat={{
+                    day: "2-digit",   // 23
+                    month: "2-digit",
+                    weekday: 'long'  // 08
+                  }}
             />
         </div>
     );
