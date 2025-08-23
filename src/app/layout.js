@@ -23,6 +23,62 @@ export default function RootLayout({ children }) {
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+        <footer>
+            <div className="mx-auto w-full max-w-screen-xl p-4 py-6 lg:py-8">
+                <hr className="my-6 sm:mx-auto border-gray-700 lg:my-8" />
+
+                <div className="flex flex-col md:flex-row md:justify-between md:items-start">
+                    {/* Left Logo */}
+                    <div className="mb-6 md:mb-0">
+                        <a className="flex items-center">
+                            <span className="self-center text-2xl font-bold whitespace-nowrap text-white">
+                                NONAME
+                            </span>
+                        </a>
+                    </div>
+
+                    {/* Right Team */}
+                    <div className="mb-6 md:mb-0 md:ml-auto">
+                        <h2 className="mb-6 text-2xl font-bold text-white">Team</h2>
+                        <ul className="text-gray-200 font-medium">
+                            <li className="mb-4">
+                                <a
+                                    href="https://github.com/Hari-42"
+                                    className="hover:text-blue-500 transition-colors duration-300"
+                                >
+                                    Github - Hari-42
+                                </a>
+                            </li>
+                            <li className="mb-4">
+                                <a
+                                    href="https://github.com/mattadosss"
+                                    className="hover:text-blue-500 transition-colors duration-300"
+                                >
+                                    Github - matadosss
+                                </a>
+                            </li>
+                            <li className="mb-4">
+                                <a
+                                    href="https://github.com/koskogo"
+                                    className="hover:text-blue-500 transition-colors duration-300"
+                                >
+                                    Github - koskogo
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <hr className="my-6 sm:mx-auto border-gray-700 lg:my-8" />
+
+                <div className="flex items-center justify-center flex-wrap">
+                    <span className="text-sm text-gray-500 text-center">
+                        © 2025 All Rights Reserved.
+                    </span>
+                </div>
+            </div>
+        </footer>
+
       </body>
     </html>
   );
