@@ -65,13 +65,29 @@ export default function WeekCalendar() {
         }
       }
 
-    function handleEventClick(info) {
-        // info.event.id corresponds to the id we set on the event objects
+      function handleEventClick(info) {
         const clickedId = String(info.event.id);
         const confirmDelete = window.confirm(`Delete event "${info.event.title}"?`);
         if (!confirmDelete) return;
+      
+        // 1. remove from UI
         setEvents((prev) => prev.filter((ev) => String(ev.id) !== clickedId));
+      
+        // 2. remove from Supabase
+        deleteEventFromDB(clickedId);
+      }
+      
+
+    // 🔴 Delete event from Supabase
+    async function deleteEventFromDB(id) {
+        const { error } = await supabase.from("events").delete().eq("id", id);
+        if (error) {
+        console.error("Error deleting event:", error);
+        } else {
+        console.log(`Event ${id} deleted successfully`);
+        }
     }
+  
 
     function handleAddEvent(e) {
         e.preventDefault();
