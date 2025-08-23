@@ -88,6 +88,12 @@ export default function WeekCalendar() {
         }
     }
   
+    function adjustForTimezone(dateString) {
+        const date = new Date(dateString);
+        // subtract 2 hours
+        date.setHours(date.getHours() - 2);
+        return date.toISOString().slice(0,19); // "YYYY-MM-DDTHH:MM:SS"
+      }
 
     function handleAddEvent(e) {
         e.preventDefault();
@@ -116,16 +122,19 @@ export default function WeekCalendar() {
     
             // Save to Supabase
             supabase
-              .from('events')
-              .insert([{
-                  title: newEvent.title,
-                  start: newEvent.startRecur + "T" + newEvent.startTime,
-                  end: newEvent.endTime ? newEvent.startRecur + "T" + newEvent.endTime : null,
-                  repeat_weekly: true
-              }])
-              .then(({ error }) => {
-                  if (error) console.error('Error saving event:', error);
-              });
+            .from('events')
+            .insert([{
+                title: newEvent.title,
+                start: new Date(newEvent.startRecur + "T" + newEvent.startTime).toISOString(),
+                end: newEvent.endTime
+                ? new Date(newEvent.startRecur + "T" + newEvent.endTime).toISOString()
+                : null,
+                repeat_weekly: true
+            }])
+            .then(({ error }) => {
+                if (error) console.error('Error saving event:', error);
+            });
+
     
         } else {
             newEvent = {
@@ -140,16 +149,17 @@ export default function WeekCalendar() {
     
             // Save to Supabase
             supabase
-              .from('events')
-              .insert([{
-                  title: newEvent.title,
-                  start: newEvent.start,
-                  end: newEvent.end || null,
-                  repeat_weekly: false
-              }])
-              .then(({ error }) => {
-                  if (error) console.error('Error saving event:', error);
-              });
+            .from('events')
+            .insert([{
+                title: newEvent.title,
+                start: new Date(newEvent.start).toISOString(),
+                end: newEvent.end ? new Date(newEvent.end).toISOString() : null,
+                repeat_weekly: false
+            }])
+            .then(({ error }) => {
+                if (error) console.error('Error saving event:', error);
+            });
+
         }
     
         resetForm();
