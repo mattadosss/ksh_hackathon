@@ -32,7 +32,7 @@ export default function RootLayout({ children }) {
                     <div className="mb-6 md:mb-0">
                         <a className="flex items-center">
                             <span className="self-center text-2xl font-bold whitespace-nowrap">
-                                NONAME
+                                Scholary
                             </span>
                         </a>
                     </div>
