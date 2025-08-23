@@ -158,7 +158,6 @@ export default function GeneratePage() {
     const startOfToday = new Date(now)
     startOfToday.setHours(0, 0, 0, 0)
     const days = []
-    // Build the days list starting from the exam date back to today (reverse search)
     for (let d = new Date(exam); d >= startOfToday; d.setDate(d.getDate() - 1)) {
       days.push(new Date(d))
     }
@@ -181,7 +180,6 @@ export default function GeneratePage() {
         if (sameDay(day, exam)) windowEnd = new Date(Math.min(windowEnd, exam))
         if (windowStart >= windowEnd) continue
 
-        // Start searching from the latest possible full block within the window, moving backward by hour
         let hourStart = new Date(addHours(windowEnd, -block))
         hourStart.setMinutes(0, 0, 0)
         let placedToday = 0
@@ -282,7 +280,6 @@ export default function GeneratePage() {
   <h1 className="text-2xl font-bold mb-4">Study Scheduler</h1>
 
   <form onSubmit={generateSchedule} className="max-w-2xl grid gap-4">
-    {/* Exam name */}
     <div>
       <label className="block font-semibold">Exam name</label>
       <input
@@ -295,7 +292,6 @@ export default function GeneratePage() {
       />
     </div>
 
-    {/* Exam date */}
     <div>
       <label className="block font-semibold">Exam date and time</label>
       <input
@@ -306,8 +302,7 @@ export default function GeneratePage() {
         className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200"
       />
     </div>
-
-    {/* Study settings */}
+    
     <div className="flex flex-wrap gap-4">
       <label className="flex-1 min-w-[180px]">
         <span className="block font-semibold">Total study hours</span>
@@ -346,7 +341,6 @@ export default function GeneratePage() {
       </label>
     </div>
 
-    {/* Buttons */}
     <div className="flex gap-3 items-center">
       <button
         type="submit"
@@ -368,7 +362,6 @@ export default function GeneratePage() {
             </button>
     </div>
 
-    {/* Status message */}
     {status ? (
       <div className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg">
         {status}
@@ -376,7 +369,6 @@ export default function GeneratePage() {
     ) : null}
   </form>
 
-  {/* Upcoming schedule */}
   <div className="mt-8">
     <h2 className="text-xl font-semibold mb-3">Upcoming schedule</h2>
     {upcomingEvents.length === 0 ? (
