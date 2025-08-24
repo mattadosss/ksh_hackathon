@@ -1,4 +1,5 @@
-# KSH Study Planner
+# Scholary
+This project was created for the KSH Hackathon.
 
 An intelligent study planning application that automatically generates optimal study schedules for your exams. Built with Next.js and powered by an advanced scheduling algorithm, this tool helps students maximize their study efficiency by creating conflict-free study sessions that fit perfectly into their existing schedule.
 
